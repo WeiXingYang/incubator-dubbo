@@ -22,6 +22,10 @@ import java.io.Serializable;
 
 /**
  * @export
+ *
+ * Argument 论点配置
+ * @author weixing.yang
+ * @date 2019/5/20 15:40
  */
 public class ArgumentConfig implements Serializable {
 

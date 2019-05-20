@@ -40,6 +40,10 @@ import java.util.regex.Pattern;
  * Utility methods and public methods for parsing configuration
  *
  * @export
+ *
+ * AbstractConfig 用于解析配置的实用方法和公共方法
+ * @author weixing.yang
+ * @date 2019/5/20 15:40
  */
 public abstract class AbstractConfig implements Serializable {
 
@@ -77,6 +81,11 @@ public abstract class AbstractConfig implements Serializable {
         DubboShutdownHook.getDubboShutdownHook().register();
     }
 
+    /**
+     * 配置对象的编号，适用于除了 API 配置之外的三种配置方式，标记一个配置对象，可用于对象之间的引用。
+     * 例如 XML 的 <dubbo:service provider="${PROVIDER_ID}"> ，其中 provider 为 <dubbo:provider> 的 ID 属性。
+     * API 配置则直接 #setXXX(config) 对象即可。
+     */
     protected String id;
 
     private static String convertLegacyValue(String key, String value) {
@@ -173,6 +182,14 @@ public abstract class AbstractConfig implements Serializable {
         appendParameters(parameters, config, null);
     }
 
+    /**
+     * 将配置对象的属性，添加到参数集合。
+     *
+     * @param parameters 参数集合。实际上，该集合会用于 URL.parameters 。
+     * @param config 配置对象。
+     * @param prefix 属性前缀。用于配置项添加到 parameters 中时的前缀。
+     * @ author weixing.yang
+     */
     @SuppressWarnings("unchecked")
     protected static void appendParameters(Map<String, String> parameters, Object config, String prefix) {
         if (config == null) {
@@ -186,12 +203,12 @@ public abstract class AbstractConfig implements Serializable {
                         && !"getClass".equals(name)
                         && Modifier.isPublic(method.getModifiers())
                         && method.getParameterTypes().length == 0
-                        && isPrimitive(method.getReturnType())) {
+                        && isPrimitive(method.getReturnType())) { // 方法为获取基本类型，public 的 getting 方法。
                     Parameter parameter = method.getAnnotation(Parameter.class);
                     if (method.getReturnType() == Object.class || parameter != null && parameter.excluded()) {
                         continue;
                     }
-                    int i = name.startsWith("get") ? 3 : 2;
+                    int i = name.startsWith("get") ? 3 : 2; // 获得属性名
                     String prop = StringUtils.camelToSplitName(name.substring(i, i + 1).toLowerCase() + name.substring(i + 1), ".");
                     String key;
                     if (parameter != null && parameter.key().length() > 0) {
@@ -199,17 +216,21 @@ public abstract class AbstractConfig implements Serializable {
                     } else {
                         key = prop;
                     }
-                    Object value = method.invoke(config);
+                    Object value = method.invoke(config); // 获得属性值
                     String str = String.valueOf(value).trim();
                     if (value != null && str.length() > 0) {
+                        // 转义
                         if (parameter != null && parameter.escaped()) {
                             str = URL.encode(str);
                         }
+                        // 拼接，详细说明参见 `Parameter#append()` 方法的说明。
                         if (parameter != null && parameter.append()) {
+                            // default. 里获取，适用于 ServiceConfig =》ProviderConfig 、ReferenceConfig =》ConsumerConfig 。
                             String pre = parameters.get(Constants.DEFAULT_KEY + "." + key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;
                             }
+                            // 通过 `parameters` 属性配置，例如 `AbstractMethodConfig.parameters` 。
                             pre = parameters.get(key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;
@@ -225,7 +246,7 @@ public abstract class AbstractConfig implements Serializable {
                 } else if ("getParameters".equals(name)
                         && Modifier.isPublic(method.getModifiers())
                         && method.getParameterTypes().length == 0
-                        && method.getReturnType() == Map.class) {
+                        && method.getReturnType() == Map.class) { // `#getParameters()` 方法
                     Map<String, String> map = (Map<String, String>) method.invoke(config, new Object[0]);
                     if (map != null && map.size() > 0) {
                         String pre = (prefix != null && prefix.length() > 0 ? prefix + "." : "");
@@ -244,6 +265,14 @@ public abstract class AbstractConfig implements Serializable {
         appendAttributes(parameters, config, null);
     }
 
+    /**
+     * 将 @Parameter(attribute = true) 配置对象的属性，添加到参数集合。
+     *
+     * @param parameters 参数集合。实际上，该集合会用于 URL.parameters 。
+     * @param config 配置对象。
+     * @param prefix 属性前缀。用于配置项添加到 parameters 中时的前缀。
+     * @author weixing.yang
+     */
     protected static void appendAttributes(Map<String, Object> parameters, Object config, String prefix) {
         if (config == null) {
             return;
@@ -260,7 +289,8 @@ public abstract class AbstractConfig implements Serializable {
                         && !"getClass".equals(name)
                         && Modifier.isPublic(method.getModifiers())
                         && method.getParameterTypes().length == 0
-                        && isPrimitive(method.getReturnType())) {
+                        && isPrimitive(method.getReturnType())) { // 方法为获取基本类型，public 的 getting 方法。
+                    // 获得属性名
                     String key;
                     if (parameter.key().length() > 0) {
                         key = parameter.key();
@@ -268,11 +298,13 @@ public abstract class AbstractConfig implements Serializable {
                         int i = name.startsWith("get") ? 3 : 2;
                         key = name.substring(i, i + 1).toLowerCase() + name.substring(i + 1);
                     }
+                    // 获得属性值，存在则添加到 `parameters` 集合
                     Object value = method.invoke(config);
                     if (value != null) {
                         if (prefix != null && prefix.length() > 0) {
                             key = prefix + "." + key;
                         }
+                        // 添加配置项到 `parameters`
                         parameters.put(key, value);
                     }
                 }

@@ -38,22 +38,39 @@ public abstract class AbstractServiceConfig extends AbstractInterfaceConfig {
     // group
     protected String group;
 
-    // whether the service is deprecated
+    /**
+     * whether the service is deprecated
+     * 是否弃用服务
+     */
     protected Boolean deprecated;
 
-    // delay service exporting
+    /**
+     * delay service exporting
+     * 延迟暴露服务
+     */
     protected Integer delay;
 
-    // whether to export the service
+    /**
+     * whether to export the service
+     * 是否暴露服务
+     */
     protected Boolean export;
 
-    // weight
+    /**
+     * weight 权重
+     */
     protected Integer weight;
 
-    // document center
+    /**
+     * document center
+     * 文档中心
+     */
     protected String document;
 
-    // whether to register as a dynamic service or not on register center
+    /**
+     * whether to register as a dynamic service or not on register center
+     * 是否在注册中心注册为动态服务
+     */
     protected Boolean dynamic;
 
     // whether to use token

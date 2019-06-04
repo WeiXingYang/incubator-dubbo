@@ -29,33 +29,63 @@ import org.apache.dubbo.rpc.RpcResult;
 
 import java.io.IOException;
 
+/**
+ * 实现 Codec2 接口，支持多消息的编解码器
+ *
+ * @author weixing.yang
+ */
 public final class DubboCountCodec implements Codec2 {
 
     private DubboCodec codec = new DubboCodec();
 
+    /**
+     * 编码器
+     * @param channel
+     * @param buffer
+     * @param msg
+     * @throws IOException
+     */
     @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object msg) throws IOException {
         codec.encode(channel, buffer, msg);
     }
 
+    /**
+     * 解码器
+     * @param channel
+     * @param buffer
+     * @return
+     * @throws IOException
+     */
     @Override
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
+        // 记录当前读位置，用于下面计算每条消息的长度。
         int save = buffer.readerIndex();
+        // 创建 MultiMessage 对象,MultiMessageHandler 支持对它的处理分发。
         MultiMessage result = MultiMessage.create();
+        // 解析消息
         do {
+            // 解码
             Object obj = codec.decode(channel, buffer);
+            // 输入不够，重置读进度
             if (Codec2.DecodeResult.NEED_MORE_INPUT == obj) {
                 buffer.readerIndex(save);
                 break;
+                // 解析到消息
             } else {
+                // 添加结果消息
                 result.addMessage(obj);
+                // 记录消息长度到隐式参数集合，用于 MonitorFilter 监控
                 logMessageLength(obj, buffer.readerIndex() - save);
+                // 记录当前读位置
                 save = buffer.readerIndex();
             }
         } while (true);
+        // 需要更多的输入
         if (result.isEmpty()) {
             return Codec2.DecodeResult.NEED_MORE_INPUT;
         }
+        // 返回解析到的消息
         if (result.size() == 1) {
             return result.get(0);
         }

@@ -35,6 +35,8 @@ import org.apache.dubbo.common.extension.SPI;
  * </pre>
  * Filter. (SPI, Singleton, ThreadSafe)
  *
+ * 过滤器接口
+ *
  * @see org.apache.dubbo.rpc.filter.GenericFilter
  * @see org.apache.dubbo.rpc.filter.EchoFilter
  * @see org.apache.dubbo.rpc.filter.TokenFilter

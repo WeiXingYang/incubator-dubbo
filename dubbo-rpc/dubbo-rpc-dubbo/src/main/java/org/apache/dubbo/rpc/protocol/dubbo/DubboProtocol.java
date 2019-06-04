@@ -28,30 +28,13 @@ import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.remoting.Channel;
 import org.apache.dubbo.remoting.RemotingException;
 import org.apache.dubbo.remoting.Transporter;
-import org.apache.dubbo.remoting.exchange.ExchangeChannel;
-import org.apache.dubbo.remoting.exchange.ExchangeClient;
-import org.apache.dubbo.remoting.exchange.ExchangeHandler;
-import org.apache.dubbo.remoting.exchange.ExchangeServer;
-import org.apache.dubbo.remoting.exchange.Exchangers;
+import org.apache.dubbo.remoting.exchange.*;
 import org.apache.dubbo.remoting.exchange.support.ExchangeHandlerAdapter;
-import org.apache.dubbo.rpc.AsyncContextImpl;
-import org.apache.dubbo.rpc.AsyncRpcResult;
-import org.apache.dubbo.rpc.Exporter;
-import org.apache.dubbo.rpc.Invocation;
-import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.Protocol;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcContext;
-import org.apache.dubbo.rpc.RpcException;
-import org.apache.dubbo.rpc.RpcInvocation;
+import org.apache.dubbo.rpc.*;
 import org.apache.dubbo.rpc.protocol.AbstractProtocol;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -66,22 +49,36 @@ public class DubboProtocol extends AbstractProtocol {
     public static final int DEFAULT_PORT = 20880;
     private static final String IS_CALLBACK_SERVICE_INVOKE = "_isCallBackServiceInvoke";
     private static DubboProtocol INSTANCE;
-    private final Map<String, ExchangeServer> serverMap = new ConcurrentHashMap<String, ExchangeServer>(); // <host:port,Exchanger>
-    private final Map<String, ReferenceCountExchangeClient> referenceClientMap = new ConcurrentHashMap<String, ReferenceCountExchangeClient>(); // <host:port,Exchanger>
+    /**
+     * <host:port,Exchanger>
+     */
+    private final Map<String, ExchangeServer> serverMap = new ConcurrentHashMap<String, ExchangeServer>();
+    /**
+     * <host:port,Exchanger>
+     */
+    private final Map<String, ReferenceCountExchangeClient> referenceClientMap = new ConcurrentHashMap<String, ReferenceCountExchangeClient>();
     private final ConcurrentMap<String, LazyConnectExchangeClient> ghostClientMap = new ConcurrentHashMap<String, LazyConnectExchangeClient>();
     private final ConcurrentMap<String, Object> locks = new ConcurrentHashMap<String, Object>();
     private final Set<String> optimizers = new ConcurrentHashSet<String>();
-    //consumer side export a stub service for dispatching event
-    //servicekey-stubmethods
+    /**
+     * consumer side export a stub service for dispatching event
+     * servicekey-stubmethods
+     */
     private final ConcurrentMap<String, String> stubServiceMethodsMap = new ConcurrentHashMap<String, String>();
+
+    /**
+     * 处理器，负责将请求，转发到对应的 Invoker 对象，执行逻辑，返回结果
+     */
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
         @Override
         public CompletableFuture<Object> reply(ExchangeChannel channel, Object message) throws RemotingException {
             if (message instanceof Invocation) {
                 Invocation inv = (Invocation) message;
+                // 获得请求对应的 Invoker 对象
                 Invoker<?> invoker = getInvoker(channel, inv);
                 // need to consider backward-compatibility if it's a callback
+                // 如果是callback 需要处理高版本调用低版本的问题
                 if (Boolean.TRUE.toString().equals(inv.getAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
                     String methodsStr = invoker.getUrl().getParameters().get("methods");
                     boolean hasMethod = false;
@@ -104,6 +101,7 @@ public class DubboProtocol extends AbstractProtocol {
                         return null;
                     }
                 }
+                // 设置调用方的地址
                 RpcContext rpcContext = RpcContext.getContext();
                 boolean supportServerAsync = invoker.getUrl().getMethodParameter(inv.getMethodName(), Constants.ASYNC_KEY, false);
                 if (supportServerAsync) {
@@ -111,6 +109,7 @@ public class DubboProtocol extends AbstractProtocol {
                     rpcContext.setAsyncContext(new AsyncContextImpl(future));
                 }
                 rpcContext.setRemoteAddress(channel.getRemoteAddress());
+                // 执行调用
                 Result result = invoker.invoke(inv);
 
                 if (result instanceof AsyncRpcResult) {
@@ -246,6 +245,7 @@ public class DubboProtocol extends AbstractProtocol {
         URL url = invoker.getUrl();
 
         // export service.
+        //暴露服务
         String key = serviceKey(url);
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
         exporterMap.put(key, exporter);

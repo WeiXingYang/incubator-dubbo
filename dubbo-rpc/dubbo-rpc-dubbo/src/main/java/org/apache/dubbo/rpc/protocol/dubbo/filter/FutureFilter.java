@@ -35,6 +35,7 @@ import java.lang.reflect.Method;
 
 /**
  * EventFilter
+ * 实现 Filter 接口，事件通知过滤器
  */
 @Activate(group = Constants.CONSUMER)
 public class FutureFilter implements PostProcessFilter {
@@ -46,6 +47,7 @@ public class FutureFilter implements PostProcessFilter {
         fireInvokeCallback(invoker, invocation);
         // need to configure if there's return value before the invocation in order to help invoker to judge if it's
         // necessary to return future.
+        // 获得是否异步调用
         return postProcessResult(invoker.invoke(invocation), invoker, invocation);
     }
 
@@ -79,6 +81,9 @@ public class FutureFilter implements PostProcessFilter {
             fireReturnCallback(invoker, invocation, result.getValue());
         }
     }
+    /**
+     * 触发前置方法
+     */
 
     private void fireInvokeCallback(final Invoker<?> invoker, final Invocation invocation) {
         final ConsumerMethodModel.AsyncMethodInfo asyncMethodInfo = getAsyncMethodInfo(invoker, invocation);

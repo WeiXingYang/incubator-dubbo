@@ -32,6 +32,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * AbstractProxyProtocol
+ *
+ * 实现 AbstractProtocol 抽象类，Proxy 协议抽象类。
+ *
  */
 public abstract class AbstractProxyProtocol extends AbstractProtocol {
 
@@ -133,12 +136,37 @@ public abstract class AbstractProxyProtocol extends AbstractProtocol {
         return NetUtils.getIpByHost(bindIp) + ":" + url.getParameter(Constants.BIND_PORT_KEY, url.getPort());
     }
 
+    /**
+     * 获得异常对应的错误码
+     *
+     * @param e 异常
+     * @return 错误码
+     */
     protected int getErrorCode(Throwable e) {
         return RpcException.UNKNOWN_EXCEPTION;
     }
 
+    /**
+     * 执行暴露，并返回取消暴露的回调 Runnable
+     *
+     * @param impl 服务 Proxy 对象
+     * @param type 服务接口
+     * @param url URL
+     * @param <T> 服务接口
+     * @return 消暴露的回调 Runnable
+     * @throws RpcException 当发生异常
+     */
     protected abstract <T> Runnable doExport(T impl, Class<T> type, URL url) throws RpcException;
 
+    /**
+     * 执行引用，并返回调用远程服务的 Service 对象
+     *
+     * @param type 服务接口
+     * @param url URL
+     * @param <T> 服务接口
+     * @return 调用远程服务的 Service 对象
+     * @throws RpcException 当发生异常
+     */
     protected abstract <T> T doRefer(Class<T> type, URL url) throws RpcException;
 
 }

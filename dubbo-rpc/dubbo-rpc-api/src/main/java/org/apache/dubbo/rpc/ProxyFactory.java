@@ -23,12 +23,17 @@ import org.apache.dubbo.common.extension.SPI;
 
 /**
  * ProxyFactory. (API/SPI, Singleton, ThreadSafe)
+ *
+ * 代理工厂接口
+ *
  */
 @SPI("javassist")
 public interface ProxyFactory {
 
     /**
      * create proxy.
+     *
+     * 创建 Proxy ，在引用服务调用。
      *
      * @param invoker
      * @return proxy
@@ -48,10 +53,12 @@ public interface ProxyFactory {
     /**
      * create invoker.
      *
-     * @param <T>
+     * 创建 Invoker ，在暴露服务时调用。
+     *
+     * @param <T> Service 对象
      * @param proxy
-     * @param type
-     * @param url
+     * @param type Service 接口类型
+     * @param url Service 对应的 Dubbo URL
      * @return invoker
      */
     @Adaptive({Constants.PROXY_KEY})

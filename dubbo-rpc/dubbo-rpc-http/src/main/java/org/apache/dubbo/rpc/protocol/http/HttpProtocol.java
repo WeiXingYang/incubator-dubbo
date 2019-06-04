@@ -47,6 +47,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * HttpProtocol
+ *
+ * 实现 AbstractProxyProtocol 抽象类，dubbo:// 协议实现类。
  */
 public class HttpProtocol extends AbstractProxyProtocol {
 
@@ -71,6 +73,16 @@ public class HttpProtocol extends AbstractProxyProtocol {
         return DEFAULT_PORT;
     }
 
+    /**
+     * 执行暴露，并返回取消暴露的回调 Runnable
+     *
+     * @param impl 服务 Proxy 对象
+     * @param type 服务接口
+     * @param url URL
+     * @param <T> 服务接口
+     * @return 消暴露的回调 Runnable
+     * @throws RpcException 当发生异常
+     */
     @Override
     protected <T> Runnable doExport(final T impl, Class<T> type, URL url) throws RpcException {
         String addr = getAddr(url);
@@ -106,6 +118,15 @@ public class HttpProtocol extends AbstractProxyProtocol {
         return httpServiceExporter;
     }
 
+    /**
+     * 执行引用，并返回调用远程服务的 Service 对象
+     *
+     * @param serviceType 服务接口
+     * @param url URL
+     * @param <T> 服务接口
+     * @return 调用远程服务的 Service 对象
+     * @throws RpcException 当发生异常
+     */
     @Override
     @SuppressWarnings("unchecked")
     protected <T> T doRefer(final Class<T> serviceType, final URL url) throws RpcException {
@@ -155,6 +176,12 @@ public class HttpProtocol extends AbstractProxyProtocol {
         return (T) httpProxyFactoryBean.getObject();
     }
 
+    /**
+     * 获得异常对应的错误码
+     *
+     * @param e 异常
+     * @return 错误码
+     */
     @Override
     protected int getErrorCode(Throwable e) {
         if (e instanceof RemoteAccessException) {
